@@ -1,6 +1,5 @@
 var four_corners_map;
-
-var COLORS;
+var COLORS, LOCATIONS;
 
 function setup() {
     angleMode(RADIANS);
@@ -10,6 +9,15 @@ function setup() {
         "platinum": color(229, 228, 226),
         "cobalt": color(0, 71, 171),
     };
+
+    LOCATIONS = {
+        "compass": createVector(1016, 265),
+        "tarbean": createVector(745, 1247),
+        "great_road": createVector(660, 885),
+        "tinker_tanner": createVector(1040, 320),
+        "ralien": createVector(415, 1380),
+        "khershaen": createVector(385, 550),
+    };
     // noCursor();
     createCanvas(windowWidth, windowHeight);
     four_corners_map = new FourCornersMap();
@@ -17,7 +25,7 @@ function setup() {
 }
 
 function draw() {
-    background(255);
+    background(color('white'));
     four_corners_map.display();
 }
 
@@ -30,6 +38,13 @@ function mouseClicked() {
 
 }
 
+function getAngle(cursor, position) {
+    position = position.copy();
+    cursor = cursor.copy();
+    var vec = cursor.sub(position);
+    return vec.heading();
+}
+
 // MAP
 var FourCornersMap = function() {
     this.display_markers = false;
@@ -39,11 +54,11 @@ var FourCornersMap = function() {
     this.width = 1200;
     this.height = 1800;
     this.cursor = new MapCursor();
-    this.compass = new TrifoilCompass(createVector(1016, 265), 115);
+    this.compass = new TrifoilCompass(LOCATIONS['compass'], 115);
     
-    this.gold_marker = new LocationMarker(COLORS['gold'], createVector(745, 1247));
-    this.platinum_marker = new LocationMarker(COLORS['gold'], createVector(660, 885));
-    this.cobalt_marker = new LocationMarker(COLORS['gold'], createVector(1040, 320));
+    this.gold_marker = new LocationMarker(COLORS['gold'], LOCATIONS['tarbean']);
+    this.platinum_marker = new LocationMarker(COLORS['platinum'], LOCATIONS['ralien']);
+    this.cobalt_marker = new LocationMarker(COLORS['cobalt'],  LOCATIONS['khershaen']);
 
     this.location_markers = {
         "gold": this.gold_marker,
@@ -56,6 +71,14 @@ FourCornersMap.prototype.resize  = function() {
     this.scale = windowHeight / this.height;
 }
 
+FourCornersMap.prototype.getCompass  = function() {
+    return this.compass;
+}
+
+FourCornersMap.prototype.getLocationMarkers  = function() {
+    return this.location_markers;
+}
+
 FourCornersMap.prototype.display = function() {
     map_mouse_x = mouseX / this.scale - this.position.x;
     map_mouse_y = mouseY / this.scale - this.position.y;
@@ -66,18 +89,28 @@ FourCornersMap.prototype.display = function() {
     scale(this.scale);
     translate(this.position.x, this.position.y);
     image(this.background_img, 0, 0);
-    for (var location_key in this.location_markers) {
-        if (this.location_markers.hasOwnProperty(location_key)) {
-            location_marker = this.location_markers[location_key];
-            needle_orientation = this.getAngle(map_mouse_position, location_marker.position);
-            // needle_orientation = p5.Vector.angleBetween(map_mouse_position, location_marker.position);
-            this.compass.setNeedleOrientation(location_key, needle_orientation);
-            if (this.display_markers){
-                location_marker.display();
-            }
-        }
+
+    // Get needle orientations, mapped by location marker
+    location_markers = this.getLocationMarkers();
+    needle_orientations = _.mapValues(location_markers, function(location_marker) {
+        return getAngle(map_mouse_position, location_marker.position);
+    });
+
+    // Set the compass needles to the computed orientations
+    compass = this.getCompass();
+    _.forOwn(needle_orientations, function(needle_orientation, needle_key){
+        compass.setNeedleOrientation(needle_orientation, needle_key);
+    });
+
+    // Display
+    compass.display();
+
+    if (this.display_markers == false){
+        _.each(location_markers, function(location_marker){
+            location_marker.display();
+        });
     }
-    this.compass.display();
+    
     this.cursor.display(map_mouse_position);
     pop();
 }
@@ -107,9 +140,9 @@ var TrifoilCompass = function(position, radius) {
     };
 }
 
-TrifoilCompass.prototype.setNeedleOrientation = function(key, oriention) {
+TrifoilCompass.prototype.setNeedleOrientation = function(orientation, key) {
     needle = this.needles[key];
-    needle.oriention = oriention;
+    needle.orientation = orientation;
 }
 
 TrifoilCompass.prototype.display = function() {
@@ -117,7 +150,7 @@ TrifoilCompass.prototype.display = function() {
     translate(this.position.x, this.position.y);
     rotate(- PI / 2.0);
     ellipseMode(CENTER); 
-    fill(255);
+    fill(color('white'));
     ellipse(0, 0, 2*this.radius);
     for (var needle_key in this.needles) {
         if (this.needles.hasOwnProperty(needle_key)) {
@@ -125,8 +158,8 @@ TrifoilCompass.prototype.display = function() {
             needle.display();
         }
     }
-    fill(255);
-    stroke(0);
+    fill(color('white'));
+    stroke(color('black'));
     strokeWeight(3);
     ellipse(0, 0, 40);
     pop();
@@ -136,7 +169,7 @@ var Needle = function(radius, width, needle_color) {
     this.radius = radius;
     this.color = needle_color;
     this.width = width;
-    this.oriention = 0;
+    this.orientation = 0;
 }
 
 Needle.prototype.display = function() {
@@ -145,7 +178,7 @@ Needle.prototype.display = function() {
     shaded_color_2 = lerpColor(this.color, color('black'), 0.75);
 
     push();
-    rotate(this.oriention);
+    rotate(this.orientation);
     noStroke();
 
     fill(this.color);
