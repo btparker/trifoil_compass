@@ -11,7 +11,7 @@ function setup() {
     };
 
     LOCATIONS = {
-        "compass": createVector(1016, 265),
+        "compass": createVector(1011, 269),
         "tarbean": createVector(745, 1247),
         "great_road": createVector(660, 885),
         "tinker_tanner": createVector(1040, 320),
@@ -50,11 +50,11 @@ var FourCornersMap = function() {
     this.display_markers = false;
     this.scale = 1.0;
     this.position = createVector(0, 0);
-    this.background_img = loadImage("assets/map_2.jpg");
+    this.background_img = loadImage("assets/four_corners_map.jpg");
     this.width = 1200;
     this.height = 1800;
-    this.cursor = new MapCursor();
-    this.compass = new TrifoilCompass(LOCATIONS['compass'], 115);
+    this.map_cursor = new MapCursor();
+    this.compass = new TrifoilCompass(LOCATIONS['compass']);
     
     this.gold_marker = new LocationMarker(COLORS['gold'], LOCATIONS['tarbean']);
     this.platinum_marker = new LocationMarker(COLORS['platinum'], LOCATIONS['ralien']);
@@ -84,6 +84,7 @@ FourCornersMap.prototype.display = function() {
     map_mouse_y = mouseY / this.scale - this.position.y;
 
     map_mouse_position = createVector(map_mouse_x, map_mouse_y);
+    this.map_cursor.set_location(map_mouse_position);
 
     push();
     scale(this.scale);
@@ -111,7 +112,7 @@ FourCornersMap.prototype.display = function() {
         });
     }
     
-    this.cursor.display(map_mouse_position);
+    this.map_cursor.display();
     pop();
 }
 
@@ -123,14 +124,18 @@ FourCornersMap.prototype.getAngle = function(cursor, position) {
 }
 
 // COMPASS
-var TrifoilCompass = function(position, radius) {
+var TrifoilCompass = function(position) {
     this.position = position.copy();
-    this.radius = radius;
-
+    this.radius = 115;
+    this.compass_img = loadImage("assets/compass.png");
+    this.north_marker_img = loadImage("assets/north.png");
+    this.compass_heading = - PI / 2.0;
     iron_needle = new Needle(0.95 * this.radius, 15, COLORS['iron']);
     gold_needle = new Needle(0.95 * this.radius, 15, COLORS['gold']);
     platinum_needle = new Needle(0.85 * this.radius, 10, COLORS['platinum']);
     cobalt_needle = new Needle(0.75 * this.radius, 5, COLORS['cobalt']);
+
+    this.north_marker_radius = 1.53 * this.radius;
 
     this.needles = {
         // "iron": iron_needle,
@@ -148,20 +153,47 @@ TrifoilCompass.prototype.setNeedleOrientation = function(orientation, key) {
 TrifoilCompass.prototype.display = function() {
     push();
     translate(this.position.x, this.position.y);
-    rotate(- PI / 2.0);
-    ellipseMode(CENTER); 
-    fill(color('white'));
-    ellipse(0, 0, 2*this.radius);
+
+
+    // Draw the compass background
+    push();
+    rotate(this.compass_heading);
+    imageMode(CENTER);
+    image(this.compass_img, 0, 0);  // Draw image using CENTER mode
+    pop();
+
+
+    // Draw the north marker at the orientation
+    push();
+    // No image rotation, as the N must always be up
+    north_placement = createVector(0, -this.north_marker_radius, 0);
+    north_placement.rotate(this.compass_heading);
+    imageMode(CENTER);
+    image(this.north_marker_img, north_placement.x, north_placement.y);
+    pop();
+
+
+    // Draw compass needles
+    push();
+    rotate(this.compass_heading);
     for (var needle_key in this.needles) {
         if (this.needles.hasOwnProperty(needle_key)) {
             needle = this.needles[needle_key];
             needle.display();
         }
     }
+    pop();
+
+
+    // Draw the needle "pivot cover"
+    push();
+    ellipseMode(CENTER);
     fill(color('white'));
     stroke(color('black'));
     strokeWeight(3);
     ellipse(0, 0, 40);
+    pop();
+
     pop();
 }
 
@@ -198,9 +230,10 @@ Needle.prototype.display = function() {
 
 // MAP CURSOR
 var MapCursor = function() {
+    this.location = createVector(0, 0);
 }
 
-MapCursor.prototype.display = function(position) {
+MapCursor.prototype.display = function() {
     // Update
     this.radius = 5;
 
@@ -210,9 +243,14 @@ MapCursor.prototype.display = function(position) {
     noFill();
     stroke(color(255, 255, 0));
     strokeWeight(2);
-    ellipse(position.x, position.y, 2*this.radius);
+    ellipse(this.location.x, this.location.y, 2*this.radius);
     pop();
 }
+
+MapCursor.prototype.set_location = function(location) {
+    this.location = location.copy();
+}
+
 
 
 // LOCATION MARKER
@@ -223,13 +261,13 @@ var LocationMarker = function(marker_color, position) {
 
 LocationMarker.prototype.display = function() {
     // Update
-    this.radius = 15;
+    this.radius = 10;
 
     // Draw
     push();
     ellipseMode(CENTER); 
     stroke(color('black'));
-    strokeWeight(4);
+    strokeWeight(3);
     fill(this.color);
     ellipse(this.position.x, this.position.y, 2*this.radius);
     ellipse(this.position.x, this.position.y, 4);
