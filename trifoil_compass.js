@@ -28,9 +28,9 @@ function setup() {
         "khershaen": createVector(385, 550),
     };
     // noCursor();
-    canvas = createCanvas(windowWidth, windowHeight);
 
     four_corners_map = new FourCornersMap();
+    canvas = createCanvas(four_corners_map.width, four_corners_map.height);
     four_corners_map.resize();
 }
 
@@ -40,7 +40,6 @@ function draw() {
 }
 
 function windowResized() {
-    // resizeCanvas(windowWidth, windowHeight);
     four_corners_map.resize();
 }
 
@@ -234,7 +233,8 @@ FourCornersMap.prototype.getNeedleOrientations = function() {
 }
 
 FourCornersMap.prototype.resize  = function() {
-    this.scale = 1280 / this.height;
+    this.scale = windowHeight / this.height;
+    resizeCanvas(this.width * this.scale, this.height * this.scale);
 }
 
 FourCornersMap.prototype.getCompass  = function() {
@@ -272,6 +272,7 @@ FourCornersMap.prototype.display = function() {
 
     push();
     scale(this.scale);
+    // this.position.x = (windowWidth - this.width * this.scale) / (2.0);
     translate(this.position.x, this.position.y);
     image(this.background_img, 0, 0);
 
