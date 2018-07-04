@@ -2,6 +2,7 @@ var four_corners_map;
 var COLORS, LOCATIONS;
 var SLIDERS;
 var DEBUG = true;
+var canvas;
 
 function setup() {
     angleMode(RADIANS);
@@ -27,7 +28,8 @@ function setup() {
         "khershaen": createVector(385, 550),
     };
     // noCursor();
-    createCanvas(windowWidth, windowHeight);
+    canvas = createCanvas(windowWidth, windowHeight);
+
     four_corners_map = new FourCornersMap();
     four_corners_map.resize();
 }
@@ -38,7 +40,7 @@ function draw() {
 }
 
 function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
+    // resizeCanvas(windowWidth, windowHeight);
     four_corners_map.resize();
 }
 
@@ -208,6 +210,7 @@ var FourCornersMap = function() {
     this.scale = 1.0;
     this.position = createVector(0, 0);
     this.background_img = loadImage("assets/four_corners_map.jpg");
+    this.tinker_tanner = loadImage("assets/tinker_tanner.png");
     this.width = 1200;
     this.height = 1800;
     this.map_cursor = new MapCursor();
@@ -231,7 +234,7 @@ FourCornersMap.prototype.getNeedleOrientations = function() {
 }
 
 FourCornersMap.prototype.resize  = function() {
-    this.scale = windowHeight / this.height;
+    this.scale = 1280 / this.height;
 }
 
 FourCornersMap.prototype.getCompass  = function() {
@@ -294,6 +297,12 @@ FourCornersMap.prototype.display = function() {
     }
     
     this.map_cursor.display();
+    push();
+    translate(this.map_cursor.position.x, this.map_cursor.position.y);
+    scale(0.5);
+    imageMode(CENTER);
+    image(this.tinker_tanner, 0, -50);
+    pop();
 
     if (DEBUG) {
         g_pos = location_markers['gold'].position;
@@ -313,13 +322,13 @@ FourCornersMap.prototype.display = function() {
 
         estimated_pt = calculateThreeCircleIntersection(c_gp, c_pc, c_cg);
         if (estimated_pt != null) {
-            estimated_marker = new LocationMarker(color('pink'), estimated_pt);
+            estimated_marker = new LocationMarker(color('white'), estimated_pt);
             estimated_marker.display();
         }
 
-        c_gp.display();
-        c_pc.display();
-        c_cg.display();
+        // c_gp.display();
+        // c_pc.display();
+        // c_cg.display();
     }
 
     pop();
@@ -361,7 +370,7 @@ var TrifoilCompass = function(position) {
     this.radius = 115;
     this.compass_img = loadImage("assets/compass.png");
     this.north_marker_img = loadImage("assets/north.png");
-    this.compass_heading = - PI / 2.0;
+    this.compass_heading = 0;
     iron_needle = new Needle(0.95 * this.radius, 15, COLORS['iron']);
     gold_needle = new Needle(0.95 * this.radius, 15, COLORS['gold']);
     platinum_needle = new Needle(0.85 * this.radius, 10, COLORS['platinum']);
@@ -503,5 +512,3 @@ LocationMarker.prototype.display = function() {
     ellipse(this.position.x, this.position.y, 4);
     pop();
 }
-
-
